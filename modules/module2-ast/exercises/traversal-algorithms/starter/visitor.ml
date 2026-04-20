@@ -1,7 +1,7 @@
 (* visitor.ml - AST visitor pattern exercises.
    Implement two common visitor-style operations that walk the AST
    and accumulate information. *)
-
+ 
 open Shared_ast.Ast_types
 
 (** Count the number of each node type in a statement list.
@@ -17,10 +17,59 @@ open Shared_ast.Ast_types
       - Don't forget to count the node itself AND recurse into its
         children. *)
 let count_nodes (_stmts : stmt list) : (string * int) list =
-  (* TODO: walk the AST and count occurrences of each constructor *)
-  failwith "TODO"
+  let tbl = Hashtbl.create 32 in
 
-(** Evaluate a constant expression, returning Some int if the
+  let bump name =
+    let count = match Hashtbl.find_opt tbl name with
+      | Some c -> c
+      | None -> 0
+    in
+    Hashtbl.replace tbl name (count + 1)
+  in
+let rec count_expr e =
+    match e with
+    | IntLit _ ->
+        bump "IntLit"
+    | BoolLit _ ->
+        bump "BoolLit"
+    | Var _ ->
+        bump "Var"
+    | BinOp (_, e1, e2) ->
+        bump "BinOp";
+        count_expr e1;
+        count_expr e2
+    | Call (_, args) ->
+        bump "Call";
+        List.iter count_expr args
+    | _ -> ()
+  in
+
+  let rec count_stmt s =
+    match s with
+    | Assign (_, e) ->
+        bump "Assign";
+        count_expr e
+    | If (cond, then_branch, else_branch) ->
+        bump "If";
+        count_expr cond;
+        List.iter count_stmt then_branch;
+        List.iter count_stmt else_branch
+    | While (cond, body) ->
+        bump "While";
+        count_expr cond;
+        List.iter count_stmt body
+    | Return None ->
+        bump "Return"
+    | Return (Some e) ->
+        bump "Return";
+        count_expr e
+    | _ -> ()
+    in
+
+    List.iter count_stmt _stmts;
+    Hashtbl.fold (fun k v acc -> (k, v) :: acc) tbl []
+
+(* Evaluate a constant expression, returning Some int if the
     expression contains only integer literals and arithmetic operators,
     or None if it contains variables, booleans, calls, or comparison
     operators.
@@ -35,6 +84,32 @@ let count_nodes (_stmts : stmt list) : (string * int) list =
       evaluate (BoolLit true)                      => None
 
     Hint: use Option.bind or match on recursive results. *)
-let evaluate (_e : expr) : int option =
-  (* TODO: evaluate constant integer expressions *)
-  failwith "TODO"
+
+let rec evaluate e =
+  match e with
+  | IntLit n -> Some n
+
+  | UnaryOp (Neg, e1) ->
+      begin match evaluate e1 with
+      | Some v -> Some (-v)
+      | None -> None
+      end
+
+  | UnaryOp (Not, _) ->
+      None
+
+      | BinOp (op, e1, e2) ->
+      begin match evaluate e1, evaluate e2 with
+      | Some v1, Some v2 ->
+          begin match op with
+          | Add -> Some (v1 + v2)
+          | Sub -> Some (v1 - v2)
+          | Mul -> Some (v1 * v2)
+          | Div ->
+              if v2 = 0 then None else Some (v1 / v2)
+          | _ -> None   
+          end
+      | _ -> None
+      end
+
+  | _ -> None
