@@ -1,3 +1,4 @@
+
 (* traversals.ml - AST traversal algorithms exercise.
    Implement three classic tree traversal strategies on the AST:
    pre-order (depth-first), post-order (depth-first), and
@@ -10,19 +11,57 @@
                   "UnaryOp(-)", "Call(f)"
 *)
 
+
 open Shared_ast.Ast_types
+
+ type node =
+    | S of stmt
+    | E of expr
 
 (** Helper: produce a string label for a single expression node.
     Examples: IntLit(3), BoolLit(true), Var(x), BinOp(+), UnaryOp(-), Call(f) *)
 let label_of_expr (_e : expr) : string =
-  (* TODO: pattern match on the expression and return its label string *)
-  failwith "TODO"
+  match _e with
+  | IntLit n -> "IntLit(" ^ string_of_int n ^ ")"
+  | BoolLit b -> "BoolLit(" ^ string_of_bool b ^ ")"
+  | Var x -> "Var(" ^ x ^ ")"
+  | BinOp (op, _, _) ->
+      let op_str =
+        match op with
+        | Add -> "+"
+        | Sub -> "-"
+        | Mul -> "*"
+        | Div -> "/"
+        | Eq -> "=="
+        | Neq -> "!="
+        | Lt -> "<"
+        | Le -> "<="
+        | Gt -> ">"
+        | Ge -> ">="
+        | And -> "&&"
+        | Or -> "||"
+      in
+      "BinOp(" ^ op_str ^ ")"
+
+      | UnaryOp (op, _) ->
+      let op_str =
+        match op with
+        | Neg -> "-"
+        | Not -> "!"
+      in
+      "UnaryOp(" ^ op_str ^ ")"
+  | Call (f, _) -> "Call(" ^ f ^ ")"
 
 (** Helper: produce a string label for a single statement node.
     Examples: "Assign", "If", "While", "Return", "Print", "Block" *)
 let label_of_stmt (_s : stmt) : string =
-  (* TODO: pattern match on the statement and return its label string *)
-  failwith "TODO"
+  match _s with
+  | Assign _ -> "Assign"
+  | If _ -> "If"
+  | While _ -> "While"
+  | Return _ -> "Return"
+  | Print _ -> "Print"
+  | Block _ -> "Block"
 
 (** Pre-order depth-first traversal.
     Visit the current node FIRST, then recurse into its children
@@ -33,10 +72,51 @@ let label_of_stmt (_s : stmt) : string =
 
     Hint: write a mutual recursion with helpers for expr and stmt lists. *)
 let pre_order (_stmts : stmt list) : string list =
-  (* TODO: implement pre-order DFS traversal *)
-  (* 1. Emit the label of the current node
-     2. Then recurse into children *)
-  failwith "TODO"
+  let rec visit_stmt s =
+    let here = [label_of_stmt s] in
+    match s with
+    | Assign (_, e) ->
+        here @ visit_expr e
+
+    | If (cond, tbranch, fbranch) ->
+        here
+        @ visit_expr cond
+        @ visit_stmts tbranch
+        @ visit_stmts fbranch
+
+    | While (cond, body) ->
+        here
+        @ visit_expr cond
+        @ visit_stmts body
+
+        | Return None ->
+        here
+    | Return (Some e) ->
+        here @ visit_expr e
+
+    | Print e ->
+        here @ List.concat_map visit_expr e
+
+    | Block stmts ->
+        here @ visit_stmts stmts
+
+        and visit_expr e =
+    let here = [label_of_expr e] in
+    match e with
+    | BinOp (_, e1, e2) ->
+        here @ visit_expr e1 @ visit_expr e2
+    | UnaryOp (_, e1) ->
+        here @ visit_expr e1
+    | Call (_, args) ->
+        here @ List.concat_map visit_expr args
+    | _ ->
+        here
+
+  and visit_stmts ss =
+    List.concat_map visit_stmt ss
+  in
+  visit_stmts _stmts
+
 
 (** Post-order depth-first traversal.
     Recurse into children FIRST, then visit the current node.
@@ -46,10 +126,51 @@ let pre_order (_stmts : stmt list) : string list =
 
     Hint: same structure as pre_order but emit the label at the end. *)
 let post_order (_stmts : stmt list) : string list =
-  (* TODO: implement post-order DFS traversal *)
-  (* 1. Recurse into children first
-     2. Then emit the label of the current node *)
-  failwith "TODO"
+  let rec visit_stmt s =
+    let here = [label_of_stmt s] in
+    match s with
+    | Assign (_, e) ->
+        visit_expr e @ here
+
+    | If (cond, tbranch, fbranch) ->
+        visit_expr cond
+        @ visit_stmts tbranch
+        @ visit_stmts fbranch
+        @ here
+
+    | While (cond, body) ->
+        visit_expr cond
+        @ visit_stmts body
+        @ here
+
+        | Return None ->
+        here
+    | Return (Some e) ->
+        visit_expr e @ here
+
+    | Print e ->
+        here @ List.concat_map visit_expr e
+
+    | Block stmts ->
+        visit_stmts stmts @ here
+
+  and visit_expr e =
+    let here = [label_of_expr e] in
+    match e with
+    | BinOp (_, e1, e2) ->
+        visit_expr e1 @ visit_expr e2 @ here
+    | UnaryOp (_, e1) ->
+        visit_expr e1 @ here
+    | Call (_, args) ->
+        List.concat_map visit_expr args @ here
+    | _ ->
+
+      here
+
+  and visit_stmts ss =
+    List.concat_map visit_stmt ss
+  in
+  visit_stmts _stmts
 
 (** Breadth-first (level-order) traversal.
     Visit all nodes at depth d before any node at depth d+1.
@@ -66,5 +187,50 @@ let post_order (_stmts : stmt list) : string list =
     You will need a sum type or two queues to handle both stmt and expr
     nodes uniformly. *)
 let bfs (_stmts : stmt list) : string list =
-  (* TODO: implement breadth-first traversal using Queue *)
-  failwith "TODO"
+  let module Q = Queue in
+  let q = Q.create () in
+
+  let enqueue_stmt s = Q.add (S s) q in
+  let enqueue_expr e = Q.add (E e) q in
+
+  List.iter enqueue_stmt _stmts;
+
+  let result = ref [] in
+  while not (Q.is_empty q) do
+    match Q.take q with
+    | S s ->
+        result := !result @ [label_of_stmt s];
+        begin match s with
+        | Assign (_, e) ->
+            enqueue_expr e
+        | If (cond, tbranch, fbranch) ->
+            enqueue_expr cond;
+            List.iter enqueue_stmt tbranch;
+            List.iter enqueue_stmt fbranch
+        | While (cond, body) ->
+            enqueue_expr cond;
+            List.iter enqueue_stmt body
+        | Return None -> ()
+        | Return (Some e) ->
+            enqueue_expr e
+        | Print e ->
+            List.iter enqueue_expr e
+        | Block stmts ->
+            List.iter enqueue_stmt stmts
+        end
+
+        | E e ->
+        result := !result @ [label_of_expr e];
+        begin match e with
+        | BinOp (_, e1, e2) ->
+            enqueue_expr e1;
+            enqueue_expr e2
+        | UnaryOp (_, e1) ->
+            enqueue_expr e1
+        | Call (_, args) ->
+            List.iter enqueue_expr args
+        | _ -> ()
+        end
+  done;
+
+  !result
