@@ -19,6 +19,31 @@ open Shared_ast.Ast_types
 (* ------------------------------------------------------------------ *)
 let indent n = String.make (n * 2) ' '
 
+
+(* Convert an operator to its string symbol.
+   Add -> "+", Sub -> "-", Mul -> "*", Div -> "/",
+   Eq -> "==", Neq -> "!=", Lt -> "<", Gt -> ">",
+   Le -> "<=", Ge -> ">=", And -> "&&", Or -> "||" *)
+let string_of_op = function
+  | Add -> "+" 
+  | Sub -> "-" 
+  | Mul -> "*" 
+  | Div -> "/"
+  | Eq -> "==" 
+  | Neq -> "!="
+  | Lt -> "<" 
+  | Gt -> ">"
+  | Le -> "<=" 
+  | Ge -> ">="
+  | And -> "&&" 
+  | Or -> "||"
+
+(* Convert a unary operator to its string symbol. *)
+let string_of_uop = function
+  | Neg -> "-"
+  | Not -> "!"
+
+
 (* ================================================================== *)
 (* 1. dump_ast : stmt list -> string                                  *)
 (*                                                                    *)
@@ -44,11 +69,11 @@ let rec dump_expr (depth : int) (e : expr) : string =
   | BoolLit _b -> _pad ^ "BoolLit(" ^ string_of_bool _b ^ ")"
   | Var _s -> _pad ^ "Var(\"" ^ _s ^ "\")"
   | BinOp (_op, e1, e2) ->
-      _pad ^ "BinOp(" ^ string_of_op op ^ ")\n" ^
+      _pad ^ "BinOp(" ^ string_of_op _op ^ ")\n" ^
       dump_expr (depth + 1) e1 ^ "\n" ^
       dump_expr (depth + 1) e2
   | UnaryOp (_op, e1) ->
-      _pad ^ "UnaryOp(" ^ string_of_uop op ^ ")\n" ^
+      _pad ^ "UnaryOp(" ^ string_of_uop _op ^ ")\n" ^
       dump_expr (depth + 1) e1
   | Call (_name, args) ->
       _pad ^ "Call(\"" ^ _name ^ "\")\n" ^
@@ -195,29 +220,6 @@ let count_node_types (stmts : stmt list) : (string * int) list =
 (*      }                                                             *)
 (* ================================================================== *)
 
-(* Convert an operator to its string symbol.
-   Add -> "+", Sub -> "-", Mul -> "*", Div -> "/",
-   Eq -> "==", Neq -> "!=", Lt -> "<", Gt -> ">",
-   Le -> "<=", Ge -> ">=", And -> "&&", Or -> "||" *)
-let string_of_op = function
-  | Add -> "+" 
-  | Sub -> "-" 
-  | Mul -> "*" 
-  | Div -> "/"
-  | Eq -> "==" 
-  | Neq -> "!="
-  | Lt -> "<" 
-  | Gt -> ">"
-  | Le -> "<=" 
-  | Ge -> ">="
-  | And -> "&&" 
-  | Or -> "||"
-
-(* Convert a unary operator to its string symbol. *)
-let string_of_uop = function
-  | Neg -> "-"
-  | Not -> "!"
-
 (* Convert an expression to a string (parenthesized where needed).
      - IntLit n   -> string_of_int n
      - BoolLit b  -> string_of_bool b
@@ -233,9 +235,9 @@ let rec expr_to_string (e : expr) : string =
     "(" ^ string_of_uop op ^ expr_to_string e1 ^ ")"
   | Call (name, args) ->
     name ^ "(" ^ String.concat ", " (List.map expr_to_string args) ^ ")"
-  | _ ->
-    (* TODO: handle IntLit, BoolLit, Var *)
-    failwith "TODO: expr_to_string leaf"
+  | IntLit n -> string_of_int n
+  | BoolLit b -> string_of_bool b
+  | Var s -> s
 
 (* Pretty-print a single statement at the given indentation level.
      - Assign: "<pad><var> = <expr>;"
@@ -309,3 +311,4 @@ let () =
 
     Printf.printf "--- print_tree ---\n%s\n\n" (print_tree body);
   ) programs
+
