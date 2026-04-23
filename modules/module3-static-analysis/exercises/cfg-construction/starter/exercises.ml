@@ -47,13 +47,12 @@ let build_cfg_sequential (stmts : stmt list) : Cfg.cfg =
     blocks;
   } in
 
-  
-let cfg = Cfg.add_edge cfg "ENTRY" "B1" in
-let cfg = Cfg.add_edge cfg "B1" "EXIT" in
-cfg
+  let cfg = Cfg.add_edge cfg "ENTRY" "B1" in
+  let cfg = Cfg.add_edge cfg "B1" "EXIT" in
+  cfg
 
 let build_cfg_ifelse (stmts : stmt list) : Cfg.cfg =
-let rec split acc = function
+  let rec split acc = function
     | [] -> failwith "No If statement found"
     | If (_, then_s, else_s) :: rest ->
         (List.rev acc, then_s, else_s, rest)
@@ -85,14 +84,13 @@ let rec split acc = function
     blocks;
   } in
 
-
   let cfg = Cfg.add_edge cfg "ENTRY" "B_cond" in
-let cfg = Cfg.add_edge cfg "B_cond" "B_then" in
-let cfg = Cfg.add_edge cfg "B_cond" "B_else" in
-let cfg = Cfg.add_edge cfg "B_then" "B_join" in
-let cfg = Cfg.add_edge cfg "B_else" "B_join" in
-let cfg = Cfg.add_edge cfg "B_join" "EXIT" in
-cfg
+  let cfg = Cfg.add_edge cfg "B_cond" "B_then" in
+  let cfg = Cfg.add_edge cfg "B_cond" "B_else" in
+  let cfg = Cfg.add_edge cfg "B_then" "B_join" in
+  let cfg = Cfg.add_edge cfg "B_else" "B_join" in
+  let cfg = Cfg.add_edge cfg "B_join" "EXIT" in
+  cfg
 
 let build_cfg_while (stmts : stmt list) : Cfg.cfg =
   let rec split acc = function
@@ -127,10 +125,10 @@ let build_cfg_while (stmts : stmt list) : Cfg.cfg =
     blocks;
   } in
 
-let cfg = Cfg.add_edge cfg "ENTRY" "B_pre" in
-let cfg = Cfg.add_edge cfg "B_pre" "B_cond" in
-let cfg = Cfg.add_edge cfg "B_cond" "B_body" in
-let cfg = Cfg.add_edge cfg "B_cond" "B_post" in
-let cfg = Cfg.add_edge cfg "B_body" "B_cond" in
-let cfg = Cfg.add_edge cfg "B_post" "EXIT" in
-cfg
+  let cfg = Cfg.add_edge cfg "ENTRY" "B_pre" in
+  let cfg = Cfg.add_edge cfg "B_pre" "B_cond" in
+  let cfg = Cfg.add_edge cfg "B_cond" "B_body" in
+  let cfg = Cfg.add_edge cfg "B_cond" "B_post" in
+  let cfg = Cfg.add_edge cfg "B_body" "B_cond" in
+  let cfg = Cfg.add_edge cfg "B_post" "EXIT" in
+  cfg
