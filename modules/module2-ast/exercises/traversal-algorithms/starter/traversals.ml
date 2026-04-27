@@ -149,7 +149,7 @@ let post_order (_stmts : stmt list) : string list =
         visit_expr e @ here
 
     | Print e ->
-        here @ List.concat_map visit_expr e
+        List.concat_map visit_expr e @ here
 
     | Block stmts ->
         visit_stmts stmts @ here
