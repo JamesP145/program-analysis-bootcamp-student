@@ -143,7 +143,7 @@ let post_order (_stmts : stmt list) : string list =
         @ visit_stmts body
         @ here
 
-        | Return None ->
+    | Return None ->
         here
     | Return (Some e) ->
         visit_expr e @ here
