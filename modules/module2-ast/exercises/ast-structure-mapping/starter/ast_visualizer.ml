@@ -156,7 +156,7 @@ let rec count_expr (acc : (string * int) list) (e : expr) : (string * int) list 
   | IntLit _ ->
   inc "IntLit" acc
   | BoolLit _ ->
-  inc "Boollit" acc
+  inc "BoolLit" acc
   | Var _ ->
   inc "BoolLit" acc
   | BinOp (_, e1, e2) ->
